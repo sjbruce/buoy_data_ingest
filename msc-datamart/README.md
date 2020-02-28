@@ -1,7 +1,5 @@
 # MSC Datamart Tools
 
-buoy_xml_parser-> Database script
-
 This repo contains scripts to receive and parse realtime marine moored-buoy data from MSC Datamart and put it into a database. It receives data using the AMQP system described [here](https://eccc-msc.github.io/open-data/msc-datamart/amqp_en/) . Also includes ERDDAP config to get it from the database into ERDDAP.
 
 ## Installation
