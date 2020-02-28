@@ -12,7 +12,8 @@ This repo contains scripts to receive and parse realtime marine moored-buoy data
 
 1. Create and activate new virtual environment
 
-   ```virtualenv -p python3 venv
+   ```sh
+      virtualenv -p python3 venv
       source venv/bin/activate
    ```
 
