@@ -13,5 +13,6 @@ setup(name='msc_ingest',
                         'psycopg2-binary',
                         'xmltodict',
                         'sqlalchemy',
-                        'paramiko'],
+                        'paramiko',
+                        'click'],
       )

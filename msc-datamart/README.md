@@ -4,21 +4,33 @@ This repo contains scripts to receive and parse realtime marine moored-buoy data
 
 ## Installation
 
-1. From this directory, install the buoy loading script with
+1. `cd` into this directory
 
-`pip install -e .`
+1. If needed, install virtualenv.
 
-2. Test that the package is installed by running `python -m msc_ingest.parse_xml sample.xml` from this directory
+   `pip install virtualenv --user`
 
-3. Edit dd_swob_marine.conf as needed (optional)
+1. Create and activate new virtual environment
 
-4. Create a postgres database and run `db.sql` to create a table
+   ```virtualenv -p python3 venv
+      source venv/bin/activate
+   ```
 
-5. Change this line in `msc_ingest/ingest_to_db.py`: `db_string = "postgres://user:pass@host:5432/database"` to reflect your DB settings.
+1. Install the buoy loading script with
 
-6. Test that it works by running `python msc_ingest/ingest_to_db.py sample.xml` from this directory. This should create a new record in your table. Note that running this multiple times will not produce multiple records.
+   `pip install -e .`
 
-7. Start recording data to the database with
+1. Test that the package is installed by running `python -m msc_ingest.parse_xml sample.xml` from this directory
+
+1. Edit dd_swob_marine.conf as needed (optional)
+
+1. Create a postgres database and run `db.sql` to create a table
+
+1. Change this line in `msc_ingest/ingest_to_db.py`: `db_string = "postgres://user:pass@host:5432/database"` to reflect your DB settings.
+
+1. Test that it works by running `python msc_ingest/ingest_to_db.py sample.xml` from this directory. This should create a new record in your table. Note that running this multiple times will not produce multiple records.
+
+1. Start recording data to the database with
    `sr_subscribe start dd_swob_marine.conf`
 
 ## Just parsing an XML file

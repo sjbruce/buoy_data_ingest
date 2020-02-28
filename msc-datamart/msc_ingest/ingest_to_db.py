@@ -36,7 +36,7 @@ def insert_into_db(line):
         set_=line
     )
 
-    db.execute(stmt)
+    return db.execute(stmt)
 
 
 def remove_and_log_uninsertable_keys(line):
@@ -62,13 +62,15 @@ def ingest_buoy_xml_file(filename):
     remove_and_log_uninsertable_keys(buoy_record)
 
     # insert the record
-    insert_into_db(buoy_record)
+    return insert_into_db(buoy_record)
 
 
 @click.command()
 @click.argument('filename', type=click.Path(exists=True))
 def main(filename):
-    ingest_buoy_xml_file(filename)
+    res = ingest_buoy_xml_file(filename)
+
+    print(f'{res.rowcount} rows update or inserted in table "{TABLE_NAME}"')
 
 
 if __name__ == '__main__':
