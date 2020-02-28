@@ -13,7 +13,7 @@ See docs at https://dd4.weather.gc.ca/observations/doc/
 import click
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.dialects.postgresql import insert
-from buoy_data_ingest.parse_xml import buoy_xml_to_json
+from msc_ingest.parse_xml import buoy_xml_to_json
 
 
 db_string = "postgres://user:pass@host:5432/database"

@@ -19,7 +19,7 @@ class DB_ingest(object):
 
         '''
 
-        from buoy_data_ingest.ingest_to_db import ingest_buoy_xml_file
+        from msc_ingest.ingest_to_db import ingest_buoy_xml_file
 
         new_file = parent.msg.new_file
         parent.logger.info('Buoy ingest file: ' + new_file)

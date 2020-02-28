@@ -10,11 +10,17 @@ This repo contains scripts to receive and parse realtime marine moored-buoy data
 
 `pip install -e .`
 
-2. Edit dd_swob_marine.conf
+2. Test that the package is installed by running `python -m msc_ingest.parse_xml sample.xml` from this directory
 
-3. Create database tables and connect to it
+3. Edit dd_swob_marine.conf as needed (optional)
 
-4. start recording data to the database with
+4. Create a postgres database and run `db.sql` to create a table
+
+5. Change this line in `msc_ingest/ingest_to_db.py`: `db_string = "postgres://user:pass@host:5432/database"` to reflect your DB settings.
+
+6. Test that it works by running `python msc_ingest/ingest_to_db.py sample.xml` from this directory. This should create a new record in your table. Note that running this multiple times will not produce multiple records.
+
+7. Start recording data to the database with
    `sr_subscribe start dd_swob_marine.conf`
 
 ## Just parsing an XML file
@@ -22,8 +28,7 @@ This repo contains scripts to receive and parse realtime marine moored-buoy data
 After installing,
 
 ```sh
-cd buoy_data_ingest
-python parse_xml.py ../sample.xml
+python -m msc_ingest.parse_xml sample.xml
 ```
 
 ## ERDDAP
@@ -42,3 +47,7 @@ https://dd.weather.gc.ca/observations/doc/
 
 Sarracenia
 https://github.com/MetPX/sarracenia
+
+## TODO
+
+How to only accept certain buoys?
