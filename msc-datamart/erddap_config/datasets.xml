@@ -7,6 +7,7 @@
         <schemaName></schemaName>
         <tableName>swob_marine</tableName>
         <reloadEveryNMinutes>10080</reloadEveryNMinutes>
+        <orderBy>result_time</orderBy>
         <addAttributes>
             <att name="cdm_data_type">Point</att>
             <att name="Conventions">COARDS, CF-1.6, ACDD-1.3</att>
