@@ -10,11 +10,13 @@ See docs at https://dd4.weather.gc.ca/observations/doc/
 # TODO add logging
 # TODO could auto-create table here
 
+import os
 import click
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.dialects.postgresql import insert
 from msc_ingest.parse_xml import buoy_xml_to_json
 
+buoy_filename = "buoy_list.txt"
 
 db_string = "postgres://user:pass@host:5432/database"
 TABLE_NAME = 'swob_marine'
@@ -51,11 +53,27 @@ def remove_and_log_uninsertable_keys(line):
             del line[k]
 
 
+def read_buoys_list(filename):
+    file = open(filename)
+    buoys_list = file.read().strip().split('\n')
+    file.close()
+    return buoys_list
+
+
 def ingest_buoy_xml_file(filename):
     'Insert buoy data in XML format into a database'
 
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+
+    buoys_list = read_buoys_list(this_dir + '/' + buoy_filename)
+
     # get a flat dictionary from the source XML
     buoy_record = buoy_xml_to_json(filename)
+
+    if buoy_record['wmo_synop_id'] not in buoys_list:
+        print(
+            f"Buoy {buoy_record['wmo_synop_id']} not in: {' '.join(buoys_list)}  ")
+        return
 
     # remove and print extra fields that our table doesn't have (yet)
     # probably not necessary if we keep an eye on the mailing lists
@@ -68,8 +86,10 @@ def ingest_buoy_xml_file(filename):
 @click.command()
 @click.argument('filename', type=click.Path(exists=True))
 def main(filename):
+
     res = ingest_buoy_xml_file(filename)
 
+    if res:
     print(f'{res.rowcount} rows update or inserted in table "{TABLE_NAME}"')
 
 
