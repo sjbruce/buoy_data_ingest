@@ -5,7 +5,7 @@
         <driverName>org.postgresql.Driver</driverName>
         <catalogName></catalogName>
         <schemaName></schemaName>
-        <tableName>swob_marine</tableName>
+        <tableName>swob_marine_view</tableName>
         <reloadEveryNMinutes>10080</reloadEveryNMinutes>
         <orderBy>result_time</orderBy>
         <addAttributes>

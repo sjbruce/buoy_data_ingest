@@ -1,3 +1,8 @@
+-- Table definition based on variables in https://dd.weather.gc.ca/observations/doc/SWOB-ML_Product_User_Guide_v8.3_e.pdf
+-- See section 5.11 OPP Moored Buoy
+-- Fields are repeated (eg _1, _2) basd on 'Maximum Multiplicity' field 
+
+-- I left out GRANT commands
 
 --DROP TABLE IF EXISTS swob_marine;
 CREATE TABLE swob_marine (
@@ -164,20 +169,8 @@ CREATE TABLE swob_marine (
     UNIQUE(sampling_time, wmo_synop_id)
   );
 
--- Trigger to delete old rows on insert, could be done with cron job alternatively
-CREATE OR REPLACE FUNCTION delete_old_rows() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  DELETE FROM swob_marine WHERE sampling_time < NOW() - INTERVAL '3 weeks';
-  RETURN NULL;
-END;
-$$;
+-- Dispaly last month in ERDDAP, or adjust as needed
 
-DROP TRIGGER IF EXISTS trigger_delete_old_rows ON swob_marine;
-
-CREATE TRIGGER trigger_delete_old_rows
-    AFTER INSERT ON swob_marine
-    EXECUTE PROCEDURE delete_old_rows();
-
-GRANT SELECT,DELETE,INSERT ON swob_marine TO cioos;
+-- DROP VIEW IF EXISTS swob_marine_view
+CREATE OR REPLACE VIEW swob_marine_view AS
+  SELECT * FROM swob_marine WHERE sampling_time > ( NOW() - INTERVAL '1 month' );
