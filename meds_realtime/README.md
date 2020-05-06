@@ -13,13 +13,13 @@ This package:
 
 1. Download [metaf2xml](https://metaf2xml.sourceforge.io/), install parser, make sure it works by running `perl /opt/metaf2xml-2.6/bin/metaf2xml.pl -h`.
 1. Install a Python3 virtualenv
-1. Install this package
+1. Install this package using -e
 
    ```bash
    pip install -e .
    ```
 
-1. Create a .env file from .env.sample
+1. Edit the DB connection information in fm13_ingest/ingest_to_db.py
 1. Edit fm13.conf to include the regions/messages you would like
 1. Setup a DB to connect to, use db.sql to create a table & view
 
