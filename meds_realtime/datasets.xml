@@ -10,6 +10,7 @@
         <tableName>meds_buoys_realtime_non_opp</tableName>
         <reloadEveryNMinutes>10080</reloadEveryNMinutes>
         <orderBy>result_time</orderBy>
+        <defaultGraphQuery>longitude,latitude,sea_surface_temp&amp;time&gt;=now-1day&amp;time&lt;=now</defaultGraphQuery>
         <addAttributes>
             <att name="cdm_timeseries_variables">station_id</att>
             <att name="subsetVariables">station_id, longitude, latitude, office</att>
