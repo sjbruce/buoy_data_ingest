@@ -30,4 +30,7 @@ sed -i "1,1s/,\W*$//" $csv_folder/*.csv
 # set this as the new header
 sed -i "1c\STN_ID,DATE,Q_FLAG,LATITUDE,LONGITUDE,DEPTH,VCAR,VTPK,VWH\$,VCMX,VTP\$,WDIR,WSPD,WSS\$,GSPD,WDIR2,WSPD2,WSS\$2,GSPD2,ATMS,ATMS2,DRYT,SSTP" $csv_folder/c*.csv
 
+# on linux, unzip preserves file permissions
+chmod 644 -R $csv_folder/*
+
 echo "Done"
