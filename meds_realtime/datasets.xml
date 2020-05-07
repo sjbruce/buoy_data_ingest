@@ -126,6 +126,7 @@
         </sourceAttributes -->
             <addAttributes>
                 <att name="long_name">Precipitation</att>
+                <att name="missing_value">4</att>
             </addAttributes>
         </dataVariable>
         <dataVariable>
@@ -254,6 +255,7 @@
         </sourceAttributes -->
             <addAttributes>
                 <att name="long_name">Wx Ind Val</att>
+                <att name="missing_value">6</att>
             </addAttributes>
         </dataVariable>
     </dataset>
