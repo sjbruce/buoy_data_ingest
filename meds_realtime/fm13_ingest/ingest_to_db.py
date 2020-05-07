@@ -53,7 +53,7 @@ class DBIngester(object):
                 del line[k]
 
     def ingest(self, filename: str, metadata={}):
-        ''' Ingest FM13 file to database. Also gets some metadata from AMPQ
+        ''' Ingest FM13 file to database. Also gets some metadata from AMQP
         '''
         with open(filename) as f:
             lines = f.read()

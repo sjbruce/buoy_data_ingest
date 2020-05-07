@@ -4,7 +4,7 @@ This pacakage harvests marine buoy data from ECCC/DFO and has steps to put the d
 
 ## MSC-Datamart
 
-- Realtime OPP moored buoy data from MSC Datamart via AMPQ -> Postgres DB -> ERDDAP
+- Realtime OPP moored buoy data from MSC Datamart via AMQP -> Postgres DB -> ERDDAP
 
 ## MEDS
 
@@ -12,4 +12,4 @@ This pacakage harvests marine buoy data from ECCC/DFO and has steps to put the d
 
 ## MEDS Realtime
 
-- Realtime non-OPP moored buoy data from Datamart in FM13 format via AMPQ -> Postgres DB -> ERDDAP
+- Realtime non-OPP moored buoy data from Datamart in FM13 format via AMQP -> Postgres DB -> ERDDAP

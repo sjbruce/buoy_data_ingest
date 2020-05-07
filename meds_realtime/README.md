@@ -4,7 +4,7 @@ MEDS buoy data can be read in realtime from <https://dd.weather.gc.ca/observatio
 
 This package:
 
-- subscribes the the AMPQ realtime stream using [Sarracenia](https://github.com/MetPX/sarracenia)
+- subscribes the the AMQP realtime stream using [Sarracenia](https://github.com/MetPX/sarracenia)
 - parses the FM13 messages using [metaf2xml](https://metaf2xml.sourceforge.io/)
 - inserts a record into a Postgres database
 - includes an entry for datasets.xml so it can be streamed into [ERDDAP](https://coastwatch.pfeg.noaa.gov/erddap)
