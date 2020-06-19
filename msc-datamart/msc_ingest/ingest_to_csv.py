@@ -12,33 +12,22 @@ See docs at https://dd4.weather.gc.ca/observations/doc/
 
 import os
 import click
-from sqlalchemy import create_engine, MetaData, Table
-from sqlalchemy.dialects.postgresql import insert
+import pandas as pd
 from msc_ingest.parse_xml import buoy_xml_to_json
 
 buoy_filename = "buoy_list.txt"
 
-db_string = "postgres://user:pass@host:5432/database"
-TABLE_NAME = 'swob_marine'
-
-db = create_engine(db_string)
-
 # load existing swob table columns list
-swob_table_meta = MetaData(db)
-swob_table = Table(TABLE_NAME, swob_table_meta, autoload=True)
-table_columns = swob_table.columns
+# swob_table_meta = MetaData(db)
+# swob_table = Table(TABLE_NAME, swob_table_meta, autoload=True)
+# table_columns = swob_table.columns
 
 
-def insert_into_db(line):
-    'inserts dictionary into DB'
-    insertstmt = insert(swob_table).values(line)
+def insert_into_csv(line):
+    'inserts dictionary into csv file'
 
-    stmt = insertstmt.on_conflict_do_update(
-        index_elements=[swob_table.c.wmo_synop_id, swob_table.c.sampling_time],
-        set_=line
-    )
 
-    return db.execute(stmt)
+    return 
 
 
 def remove_and_log_uninsertable_keys(line):
@@ -80,7 +69,7 @@ def ingest_buoy_xml_file(filename):
     remove_and_log_uninsertable_keys(buoy_record)
 
     # insert the record
-    return insert_into_db(buoy_record)
+    return insert_into_csv(buoy_record)
 
 
 @click.command()
@@ -90,7 +79,7 @@ def main(filename):
     res = ingest_buoy_xml_file(filename)
 
     if res:
-        print(f'{res.rowcount} rows update or inserted in table "{TABLE_NAME}"')
+        print(f'{res.rowcount} rows update or inserted in directory ')
 
 
 if __name__ == '__main__':

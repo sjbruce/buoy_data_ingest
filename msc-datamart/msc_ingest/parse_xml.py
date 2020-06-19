@@ -29,11 +29,7 @@ The resulting JSON looks like
 # TODO convert strings to numerics if needed using xmltodict postprocessor option
 
 import click
-import argparse
 import xmltodict
-
-from sqlalchemy import create_engine, MetaData, Table
-from sqlalchemy.dialects.postgresql import insert
 
 import json
 import sys
