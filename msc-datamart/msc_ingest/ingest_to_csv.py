@@ -5,12 +5,11 @@ inserts parsed XML into flat files for ingestion by ERDDAP
 See docs at https://dd4.weather.gc.ca/observations/doc/
 '''
 
-# TODO could auto-create table here
-
 import os
 import click
 import pandas as pd
 from datetime import datetime
+import dateutil
 from msc_ingest.parse_xml import buoy_xml_to_json
 
 import configparser
@@ -26,6 +25,7 @@ buoy_filename = config['DEFAULT']['buoy_list']
 output_dir = config['DEFAULT']['output_dir']
 column_headers = config['DEFAULT']['column_headers'].split(',')
 index_field = config['DEFAULT']['index_field']
+station_id_field = config['DEFAULT']['station_id_field']
 
 # file & date/time formats
 dt_format = config['DEFAULT']['datetime_format']
@@ -39,23 +39,33 @@ def insert_into_csv(line):
     '''
     global filename, full_path
     
-    sampling_time = datetime.strptime(line['sampling_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+    # sampling_time = datetime.strptime(line[index_field], '%Y-%m-%dT%H:%M:%S.%fZ')
+    sampling_time = dateutil.parser.isoparse(line[index_field])
 
-    filename = file_name_format % (line['wmo_synop_id'], sampling_time.strftime(dt_format))
+    filename = file_name_format % (line[station_id_field], sampling_time.strftime(dt_format))
     full_path = '%s%s' % (output_dir, filename)
 
-    
+    # converting the dictionary values to be a single element array allows 
+    # pandas to better identify how to interpret the data
     converted_line = prepare_line(line)
     
     line_df = pd.DataFrame.from_dict(converted_line)
-    line_df.set_index(index_field, inplace=True)
 
     if os.path.isfile(full_path):
         existing_data = pd.read_csv(full_path)
-        existing_data.set_index(index_field, inplace=True)
-        
+
+        # append new line data to dataframe and purge duplciates
         buoy_data = existing_data.append(line_df)
+        buoy_data.drop_duplicates(subset=index_field, inplace=True)
+
+        # convert sampling_time to a datetime field and then set as index
+        buoy_data[index_field] = pd.to_datetime(buoy_data[index_field])
+        buoy_data.set_index(index_field, inplace=True)
+
+        buoy_data.sort_index(inplace=True)
     else:
+        line_df[index_field] = pd.to_datetime(line_df[index_field])
+        line_df.set_index(index_field, inplace=True)
         buoy_data = line_df
 
     return buoy_data
@@ -98,9 +108,11 @@ def ingest_buoy_xml_file(filename):
     '''
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
+    # checks absolute path first
     if os.path.isfile(buoy_filename):
         buoys_list = read_buoys_list(buoy_filename)
 
+    # falls back to relative path next
     elif os.path.isfile(this_dir + '/' + buoy_filename):
         logger.warning('Cannot find file as an absolute path: %s\nAttempting to locate as a relative' % (buoy_filename))
         buoys_list = read_buoys_list(this_dir + '/' + buoy_filename)
@@ -112,9 +124,9 @@ def ingest_buoy_xml_file(filename):
         # get a flat dictionary from the source XML
         buoy_record = buoy_xml_to_json(filename)
 
-        if buoy_record['wmo_synop_id'] not in buoys_list:
+        if buoy_record[station_id_field] not in buoys_list:
             print(
-                f"Buoy {buoy_record['wmo_synop_id']} not in: {' '.join(buoys_list)}  ")
+                f"Buoy {buoy_record[station_id_field]} not in: {' '.join(buoys_list)}  ")
             return pd.DataFrame()
 
         # remove and print extra fields that our table doesn't have (yet)
