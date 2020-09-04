@@ -15,35 +15,24 @@ from msc_ingest.parse_xml import buoy_xml_to_json
 import configparser
 import logging
 
-logging.basicConfig(filename='ingest_to_csv.log', level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
-config = configparser.ConfigParser()
-config.read('msc_ingest/ingest_to_csv.conf')
-
-buoy_filename = config['DEFAULT']['buoy_list']
-output_dir = config['DEFAULT']['output_dir']
-column_headers = config['DEFAULT']['column_headers'].split(',')
-index_field = config['DEFAULT']['index_field']
-station_id_field = config['DEFAULT']['station_id_field']
-
-# file & date/time formats
-dt_format = config['DEFAULT']['datetime_format']
-file_name_format = config['DEFAULT']['filename_format'] # station id and date
-filename = None
-full_path = None
+logger = None
+config = None
 
 def insert_into_csv(line):
     '''
     inserts dictionary into csv file
     '''
-    global filename, full_path
-    
+    output_dir = config['DEFAULT']['output_dir']
+    index_field = config['DEFAULT']['index_field']
+    station_id_field = config['DEFAULT']['station_id_field']
+    dt_format = config['DEFAULT']['datetime_format']
+    filename_format = config['DEFAULT']['filename_format']
+
     # sampling_time = datetime.strptime(line[index_field], '%Y-%m-%dT%H:%M:%S.%fZ')
     sampling_time = dateutil.parser.isoparse(line[index_field])
 
-    filename = file_name_format % (line[station_id_field], sampling_time.strftime(dt_format))
-    full_path = '%s%s' % (output_dir, filename)
+    filename = filename_format % (line[station_id_field], sampling_time.strftime(dt_format))
+    full_path = os.path.join(output_dir, filename)
 
     # converting the dictionary values to be a single element array allows 
     # pandas to better identify how to interpret the data
@@ -68,11 +57,12 @@ def insert_into_csv(line):
         line_df.set_index(index_field, inplace=True)
         buoy_data = line_df
 
-    return buoy_data
+    return buoy_data, full_path
 
 def prepare_line(line):
     '''
-    Converts line data to a form Pandas will recognize as a row of data rather than a series
+    Converts line data to a form Pandas will recognize as a row of data rather 
+    than a series
     '''
     converted_line = {}
 
@@ -87,10 +77,11 @@ def remove_and_log_uninsertable_keys(line):
        This shouldnt be needed, but just in case a new field is added at the source before
        we have a chance to add the column to the DB
     '''
+    column_headers = config['DEFAULT']['column_headers'].split(',')
 
     for k in list(line.keys()):
         if k not in column_headers:
-            print(f"Cannot insert {k}")
+            logger.warning("Cannot insert: %s" % (k))
             del line[k]
 
 
@@ -106,6 +97,9 @@ def ingest_buoy_xml_file(filename):
     Insert buoy data in XML format into a Pandas DataFrame to be written out to
     a CSV file
     '''
+    buoy_filename = config['DEFAULT']['buoy_list']
+    station_id_field = config['DEFAULT']['station_id_field']
+
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
     # checks absolute path first
@@ -114,19 +108,20 @@ def ingest_buoy_xml_file(filename):
 
     # falls back to relative path next
     elif os.path.isfile(this_dir + '/' + buoy_filename):
-        logger.warning('Cannot find file as an absolute path: %s\nAttempting to locate as a relative' % (buoy_filename))
         buoys_list = read_buoys_list(this_dir + '/' + buoy_filename)
 
     else:
-        logger.error('Cannot find buoy file at path: %s!' % (buoy_filename))
+        logger.error('Cannot find buoy file at path: %s or in directory: %s!' % (buoy_filename, this_dir))
 
     if buoys_list:
         # get a flat dictionary from the source XML
         buoy_record = buoy_xml_to_json(filename)
 
         if buoy_record[station_id_field] not in buoys_list:
-            print(
-                f"Buoy {buoy_record[station_id_field]} not in: {' '.join(buoys_list)}  ")
+            logger.error("Buoy %s not in: %s" % (buoy_record[station_id_field], ' '.join(buoys_list)))
+
+            # An empty dataframe is what's expected if 
+            # there is no data to write out
             return pd.DataFrame()
 
         # remove and print extra fields that our table doesn't have (yet)
@@ -139,19 +134,30 @@ def ingest_buoy_xml_file(filename):
         return pd.DataFrame()
 
 def process_file(filename):
-    buoy_data = ingest_buoy_xml_file(filename)
+    buoy_data, full_path = ingest_buoy_xml_file(filename)
 
     if not buoy_data.empty:
         buoy_data.to_csv(path_or_buf=full_path)
-        print(f'{buoy_data.size} rows update or inserted in directory ')
+        logger.info('%s rows update or inserted in directory' % (len(buoy_data.index)))
 
 
 @click.command()
+@click.argument('source_path', required=True, type=click.Path(exists=True))
 @click.option('--bulk', is_flag=True)
-@click.argument('source_path', type=click.Path(exists=True))
-def main(source_path, bulk):
+@click.option('--config_file', default='msc_ingest/ingest_to_csv.conf', show_default=True, type=click.Path(exists=True))
+@click.option('--log', default='ingest_to_csv.log', show_default=True, type=click.Path())
+def main(source_path, bulk, config_file, log):
+    global logger, config
+
+    logging.basicConfig(filename=log, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+    logger = logging.getLogger(__name__)
+
     logger.debug('Source Path: %s' % (source_path))
     logger.debug('Bulk Flag: %s' % (bulk))
+    logger.debug('Config File: %s' % (config_file))
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
 
     if not bulk:
         process_file(source_path)
