@@ -24,6 +24,7 @@ def insert_into_csv(line):
     '''
     output_dir = config['DEFAULT']['output_dir']
     index_field = config['DEFAULT']['index_field']
+    check_duplicates_field = config['DEFAULT']['check_duplicates_field']
     station_id_field = config['DEFAULT']['station_id_field']
     dt_format = config['DEFAULT']['datetime_format']
     filename_format = config['DEFAULT']['filename_format']
@@ -45,7 +46,7 @@ def insert_into_csv(line):
 
         # append new line data to dataframe and purge duplciates
         buoy_data = existing_data.append(line_df)
-        buoy_data.drop_duplicates(subset=index_field, inplace=True)
+        buoy_data.drop_duplicates(subset=check_duplicates_field, inplace=True)
 
         # convert sampling_time to a datetime field and then set as index
         buoy_data[index_field] = pd.to_datetime(buoy_data[index_field])
@@ -63,6 +64,7 @@ def prepare_line(line):
     '''
     Converts line data to a form Pandas will recognize as a row of data rather 
     than a series
+    https://eulertech.wordpress.com/2017/11/28/pandas-valueerror-if-using-all-scalar-values-you-must-pass-an-index/
     '''
     converted_line = {}
 
@@ -97,8 +99,11 @@ def ingest_buoy_xml_file(filename):
     Insert buoy data in XML format into a Pandas DataFrame to be written out to
     a CSV file
     '''
-    buoy_filename = config['DEFAULT']['buoy_list']
-    station_id_field = config['DEFAULT']['station_id_field']
+    try:
+        buoy_filename = config['DEFAULT']['buoy_list']
+        station_id_field = config['DEFAULT']['station_id_field']
+    except:
+        logger.error("Current Working Directory: %s, file: %s" % (os.getcwd(), filename))
 
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -137,7 +142,7 @@ def process_file(filename):
     buoy_data, full_path = ingest_buoy_xml_file(filename)
 
     if not buoy_data.empty:
-        buoy_data.to_csv(path_or_buf=full_path)
+        buoy_data.to_csv(path_or_buf=full_path, date_format='%Y-%m-%dT%H:%M:%SZ')
         logger.info('%s rows update or inserted in directory' % (len(buoy_data.index)))
 
 
@@ -157,7 +162,9 @@ def main(source_path, bulk, config_file, log):
     logger.debug('Config File: %s' % (config_file))
 
     config = configparser.ConfigParser()
-    config.read(config_file)
+    loaded_config = config.read(config_file)
+
+    logger.debug("Loaded Configuration Files: %s" % (loaded_config))
 
     if not bulk:
         process_file(source_path)
