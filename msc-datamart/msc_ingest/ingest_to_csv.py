@@ -15,10 +15,20 @@ from msc_ingest.parse_xml import buoy_xml_to_json
 import configparser
 import logging
 
-logger = None
-config = None
+# Logging & Configuration Defaults
+default_log_file = os.path.join(os.path.dirname(__file__), 'ingest_to_csv.log')
+default_log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s - @ line %(lineno)d in %(pathname)s'
+default_log_level = logging.DEBUG
 
-def insert_into_csv(line):
+default_config_file = os.path.join(os.path.dirname(__file__), 'ingest_to_csv.conf')
+
+logging.basicConfig(filename=default_log_file, format=default_log_format, level=default_log_level)
+logger = logging.getLogger(__name__)
+
+config = configparser.ConfigParser()
+config.read(default_config_file)
+
+def insert_into_csv(line, config=config, logger=logger):
     '''
     inserts dictionary into csv file
     '''
@@ -58,6 +68,7 @@ def insert_into_csv(line):
         line_df.set_index(index_field, inplace=True)
         buoy_data = line_df
 
+    logger.debug("# of records in DataFrame: %s, File: %s" % (len(buoy_data.index), full_path))
     return buoy_data, full_path
 
 def prepare_line(line):
@@ -87,33 +98,42 @@ def remove_and_log_uninsertable_keys(line):
             del line[k]
 
 
-def read_buoys_list(filename):
+def read_buoys_list(filename, logger):
+    logger.debug("Looking for file: %s, Is File?: %s" % (filename, os.path.isfile(filename)))
+
     file = open(filename)
     buoys_list = file.read().strip().split('\n')
+    logger.debug("Buoy List: %s" % (buoys_list))
     file.close()
+
     return buoys_list
 
 
-def ingest_buoy_xml_file(filename):
+def ingest_buoy_xml_file(filename, config=config, logger=logger):
     '''
     Insert buoy data in XML format into a Pandas DataFrame to be written out to
     a CSV file
     '''
+    logger.debug("Source File: %s" % (filename))
+    
     try:
         buoy_filename = config['DEFAULT']['buoy_list']
         station_id_field = config['DEFAULT']['station_id_field']
     except:
+        buoy_filename = None
         logger.error("Current Working Directory: %s, file: %s" % (os.getcwd(), filename))
 
     this_dir = os.path.dirname(os.path.realpath(__file__))
 
+    buoys_list = []
+
     # checks absolute path first
     if os.path.isfile(buoy_filename):
-        buoys_list = read_buoys_list(buoy_filename)
+        buoys_list = read_buoys_list(buoy_filename, logger)
 
     # falls back to relative path next
-    elif os.path.isfile(this_dir + '/' + buoy_filename):
-        buoys_list = read_buoys_list(this_dir + '/' + buoy_filename)
+    elif os.path.isfile(os.path.join(this_dir, buoy_filename)):
+        buoys_list = read_buoys_list(os.path.join(this_dir, buoy_filename), logger)
 
     else:
         logger.error('Cannot find buoy file at path: %s or in directory: %s!' % (buoy_filename, this_dir))
@@ -121,6 +141,7 @@ def ingest_buoy_xml_file(filename):
     if buoys_list:
         # get a flat dictionary from the source XML
         buoy_record = buoy_xml_to_json(filename)
+        logger.debug("JSON Data: %s" % (buoy_record))
 
         if buoy_record[station_id_field] not in buoys_list:
             logger.error("Buoy %s not in: %s" % (buoy_record[station_id_field], ' '.join(buoys_list)))
@@ -134,47 +155,41 @@ def ingest_buoy_xml_file(filename):
         remove_and_log_uninsertable_keys(buoy_record)
 
         # insert the record
-        return insert_into_csv(buoy_record)
+        logger.debug("Running insert_into_csv()...")
+        return insert_into_csv(buoy_record, config, logger)
     else:
         return pd.DataFrame()
 
-def process_file(filename):
-    buoy_data, full_path = ingest_buoy_xml_file(filename)
+def process_file(filename, config=config, logger=logger):
+    buoy_data, full_path = ingest_buoy_xml_file(filename, config, logger)
 
+    logger.debug('DataFrame to Write has %s rows' % (len(buoy_data.index)))
     if not buoy_data.empty:
+        logger.debug("Preparing to write dataframe to file: %s..." % (full_path))
         buoy_data.to_csv(path_or_buf=full_path, date_format='%Y-%m-%dT%H:%M:%SZ')
         logger.info('%s rows update or inserted in directory' % (len(buoy_data.index)))
+    else:
+        logger.debug("buoy_data is empty??!")
 
 
 @click.command()
 @click.argument('source_path', required=True, type=click.Path(exists=True))
 @click.option('--bulk', is_flag=True)
-@click.option('--config_file', default='msc_ingest/ingest_to_csv.conf', show_default=True, type=click.Path(exists=True))
-@click.option('--log', default='ingest_to_csv.log', show_default=True, type=click.Path())
+@click.option('--config_file', default=default_config_file, show_default=True, type=click.Path(exists=True))
+@click.option('--log', default=default_log_file, show_default=True, type=click.Path())
 def main(source_path, bulk, config_file, log):
-    global logger, config
-
-    logging.basicConfig(filename=log, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
-
     logger.debug('Source Path: %s' % (source_path))
     logger.debug('Bulk Flag: %s' % (bulk))
     logger.debug('Config File: %s' % (config_file))
 
-    config = configparser.ConfigParser()
-    loaded_config = config.read(config_file)
-
-    logger.debug("Loaded Configuration Files: %s" % (loaded_config))
-
     if not bulk:
-        process_file(source_path)
+        process_file(source_path, config, logger)
     else:
         source_directory = os.fsencode(source_path)
             
         for file in os.listdir(source_directory):
             swob_xml = os.path.join(source_path, os.fsdecode(file))
-            process_file(swob_xml)
-            
+            process_file(swob_xml, config, logger)
 
 if __name__ == '__main__':
     main()
