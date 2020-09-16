@@ -21,20 +21,45 @@ This repo contains scripts to receive and parse realtime marine moored-buoy data
 
    `pip install -e .`
 
-1. Test that the package is installed by running `python -m msc_ingest.parse_xml sample.xml` from this directory
+1. Test that the package is installed by running `python -m msc_ingest.parse_xml sample.xml` from this directory, this should return a JSON representation of the data in the sample.xml
 
-1. Edit dd_swob_marine.conf as needed, eg to change temp directory
+### Ingesting into a PostgreSQL database
 
+1. Edit `dd_swob_marine.conf` as needed, eg to change temp directory
 1. Create a postgres database and run `db.sql` to create a table, and GRANT permissions to a user to read/write
-
 1. Edit `msc_ingest/buoy_list.txt` with a list of buoys you want. See 'Buoy list' below.
-
 1. Change this line in `msc_ingest/ingest_to_db.py`: `db_string = "postgres://user:pass@host:5432/database"` to reflect your DB settings.
-
 1. Test that it works by running `python msc_ingest/ingest_to_db.py sample.xml` from this directory. This should create a new record in your table. Note that running this multiple times will not produce multiple records.
-
 1. Start recording data to the database with
    `sr_subscribe start dd_swob_marine.conf`
+
+### Ingesting into a series of CSV files
+
+1. Edit `dd_swob_marine_csv.conf` as needed, change destination directory, accept filter, etc.
+
+2. Edit `msc_ingest/buoy_list.txt` with a list of buoys you want. See 'Buoy list' below.
+
+3. Edit `msc_ingest/ingest_to_csv.conf`:
+
+   1. `buoy_list` = path to `buoy_list.txt`
+   2. `output_dir` = path to the desired output directory/folder
+   3. `column_headers` = a comma separated list of column names that will keep the headers & columns consistent should anything change in the SWOB-ML XML
+   4. `index_field` = the field name that will be used to set the index, assumed to be a date/time field in ISO format
+   5. `check_duplicates_field` = field used to determine duplicate records when processing records
+   6. `station_id_field` = which field is the station identifier
+   7. `datetime_format` = date/time format string, used to determine the final output file name (% must be escaped, i.e. represented as %%)
+   8. `filename_format` = the filename format string, it is assumed that two values will be inserted into the string the information in the station_id_field and the date/time of the index field represented by the datetime_format field.
+
+4. Test by running `python msc_ingest/ingest_to_csv.py sample.xml` from this directory. This should create a new record in your destination directory.
+
+   **Notes:** 
+
+   1. running this multiple times will not produce multiple records;
+   2. the `--bulk` option processes all files in a supplied directory instead of one specific file;
+   3. the `--config_file` option will allow you to specify the path to a configuration file instead of assuming `msc_ingest/ingest_to_csv.conf`;
+   4. the `--log` option will allow you to specify the path to a log file, `ingest_to_csv.log` is assumed as the default when run independently from Sarracenia;
+
+5. Start recording data with `sr_subscribe start dd_swob_marine_csv.conf`
 
 ## Just parsing an XML file
 
