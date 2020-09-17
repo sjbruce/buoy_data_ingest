@@ -85,7 +85,7 @@ def prepare_line(line):
     return converted_line
 
 
-def remove_and_log_uninsertable_keys(line):
+def remove_and_log_uninsertable_keys(line, config):
     '''Remove and report any fields that are in the XML but arent in the database
        This shouldnt be needed, but just in case a new field is added at the source before
        we have a chance to add the column to the DB
@@ -152,7 +152,7 @@ def ingest_buoy_xml_file(filename, config=config, logger=logger):
 
         # remove and print extra fields that our table doesn't have (yet)
         # probably not necessary if we keep an eye on the mailing lists
-        remove_and_log_uninsertable_keys(buoy_record)
+        remove_and_log_uninsertable_keys(buoy_record, config)
 
         # insert the record
         logger.debug("Running insert_into_csv()...")
